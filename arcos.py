@@ -9,7 +9,7 @@ sql_diccionario = {
                                         firstname varchar(50),
                                         lastname varchar(50),
                                         gender varchar(10),
-                                        birthDate timestamp,
+                                        birthDate varchar(20),
                                         documento varchar(20),
                                         createdAt timestamp,
                                         smsEnabled bool,
@@ -40,6 +40,10 @@ sql_diccionario = {
 
 
 }
+
+# Variable
+gigigo_path = "C:/Users/elopez/Golden Arch Development Corp/Transferencia Bases de Datos - Gigigo"
+
 
 
 # Defino algunas funciones utiles.  
@@ -297,14 +301,9 @@ def clean_file(filename,atribute='User'):
                   'lastname', 'gender', 'birthDate', 'documento',   'createdAt', 'smsEnabled',
                   'pushEnabled', 'emailEnabled', 'showCouponAlert', 'currentCity', 'phoneNumberPrefix','phoneNumberSufix', 
                   'status']
-        dtypes={'clientId':str, 'mcId':str, 'email':str, 'userFacebookId':str, 'country':str, 'firstname':str,
-                'lastname':str, 'gender':str, 'documento':str,  'smsEnabled':str,
-                'pushEnabled':str, 'emailEnabled':str, 'showCouponAlert':str, 'currentCity':str, 'phoneNumberPrefix':str,
-                'phoneNumberSufix':str, 
-                  'status':str}
-        parse_dates = ['birthDate','createdAt']
         # cargo el dataset en memoria.
-        df = pd.read_csv(zip_file.open(base + '.csv'),sep=separador,dtype=dtypes,usecols=columnas,parse_dates=parse_dates,error_bad_lines=False)
+        df = pd.read_csv(zip_file.open(base + '.csv'),sep=separador,dtype=str,usecols=columnas,error_bad_lines=False)
+        antes=len(df)
         # limpio el df
         df_clean = df [( df['clientId'].str.len() <= 25.0 ) &
         ( df['mcId'].str.len() <= 6.0 )            &
@@ -316,24 +315,29 @@ def clean_file(filename,atribute='User'):
         (( df['gender'].str.len() <= 10.0 ) | ( df['gender'].isnull() )  ) &
         (( df['documento'].str.len() <= 20.0 ) | ( df['documento'].isnull() )  ) &
         ( df['smsEnabled'].str.len() <= 5.0 )      &
+        ((df['birthDate'].str.len() == 16 ) | ( df['birthDate'].isnull() )  ) &
+        ((df['createdAt'].str.len() == 16 ) | ( df['createdAt'].isnull() )  ) &
         ( df['pushEnabled'].str.len() <= 5.0 )     &
         ( df['emailEnabled'].str.len() <= 5.0 )    &
         ( df['showCouponAlert'].str.len() <= 5.0 ) &
         (( df['currentCity'].str.len() <= 100.0 ) | ( df['currentCity'].isnull() )  ) &
         (( df['phoneNumberPrefix'].str.len() <= 10.0 ) | ( df['phoneNumberPrefix'].isnull() )  ) &
         (( df['phoneNumberSufix'].str.len() <= 20.0 ) | ( df['phoneNumberSufix'].isnull() )  ) &
-        (( df['status'].str.len() <= 10.0 ) | ( df['status'].isnull() )  ) ][['clientId', 'mcId', 'email', 'userFacebookId', 'country','firstname','lastname', 'gender', 'documento', 'createdAt','smsEnabled', 'pushEnabled', 'emailEnabled', 'showCouponAlert','currentCity', 'phoneNumberPrefix', 'phoneNumberSufix', 'status']]
-        df_clean['birthDate']=pd.to_datetime(df.birthDate,errors='coerce')
-        return (len(df),len(df_clean),df_clean[['clientId', 'mcId', 'email', 'userFacebookId', 'country','firstname','lastname', 'gender', 'birthDate', 'documento', 'createdAt','smsEnabled', 'pushEnabled', 'emailEnabled', 'showCouponAlert','currentCity', 'phoneNumberPrefix', 'phoneNumberSufix', 'status']])
+        (( df['status'].str.len() <= 10.0 ) | ( df['status'].isnull() )  ) ]
+        # Borro el dataset viejo.
+        del df
+        # retorno el df "limpio"
+        return (antes,len(df_clean),df_clean)
     if atribute=='Coupon':
-        # defino tipo de archivos.
-        dtypes={'clientId':str,'campaignId':str, 'code':str, 'restaurantKey':str,'restaurantRedeemKey':str}
         # cargo el df 
-        df=pd.read_csv(zip_file.open(base + '.csv'),dtype=dtypes,parse_dates=['deliveredAt','redeemAt'],sep=separador,error_bad_lines=False)
+        df=pd.read_csv(zip_file.open(base + '.csv'),dtype=str,sep=separador,error_bad_lines=False)
+        antes=len(df)
         # me quedo con cupones redimidos y con clientid.
         df_clean = df[(df.clientId.notnull()) & (df.redeemAt.notnull())]
+        # Borro el df.
+        del df
         # retorno lo que me interesa
-        return (len(df),len(df_clean),df_clean)
+        return (antes,len(df_clean),df_clean)
     else:
         print('Debe colocar un atributo válido')
 
@@ -356,12 +360,16 @@ def updatedb(atributo='User',country='AR'):
         elif status=='INEXISTENTE':
             #
             try:
+                #print(filename)
                 print(f'Limpiando y formateando {shortname}')
                 # intento cargar el archivo.
                 antes,despues,df=clean_file(filename,atributo)
                 # Guardo el archivo en disco
                 print(f"\n\t*Guardando archivo {shortname}, size inicial:{antes}, size_final:{despues} ")
                 df.to_csv('tmp.csv',index=False,sep='|')
+                # borro el df.
+                del df
+                #
                 if atributo=='User':
                     sp_create_tmp_table = 'create_temp_user_table'
                     tabla=sql_diccionario[sp_create_tmp_table]['name']
@@ -370,11 +378,12 @@ def updatedb(atributo='User',country='AR'):
                     tabla=sql_diccionario[sp_create_tmp_table]['name']
                 #
                 print(f'\n\t\t*Cargando {shortname} a {tabla}')
+                run_sp(f'drop table if exists  "{tabla}";')
                 create_load_table_sql(sp_create_tmp_table,'tmp.csv',sep='|')
                 #
                 print(f'\n\t\t\t*Actualizando ... {atributo} en DB.')
                 if atributo=='User':
-                    run_sp(f'call sp_get_exclusion_list();')
+                    #run_sp(f'call sp_get_exclusion_list();')
                     run_sp(f'call sp_update_user_table();')
                 elif atributo=='Coupon':
                     run_sp(f"call sp_update_cupones('{country}');")
@@ -382,7 +391,6 @@ def updatedb(atributo='User',country='AR'):
                 #
                 print(f'\n\t\t\t\t*Borrando {tabla} de la DB.\n Done!')
                 run_sp(f'drop table if exists  "{tabla}";')
-
                 # actualizo la tabla donde me dice que archivos se actualizaron.
                 insert_string = f"insert into updated_tables(filename,fecha)(select '{shortname}','{date}' where not exists (select 1 from updated_tables ut where ut.filename = '{shortname}' and ut.fecha =  '{date}'));"
                 # inserto la nueva row.
