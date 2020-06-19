@@ -37,8 +37,11 @@ sql_diccionario = {
                                         ,
                                         'name':'coupons_temp'
                                         }
-
-
+,
+'create_temp_campaign_vs_tag_table' : {'query':"""create table campaignvstag_temp(campaignId varchar(255),segment varchar(100), tag  varchar(100))"""
+                                       ,
+                                        'name':'campaignvstag_temp'
+                                        }
 }
 
 # Variable
@@ -328,7 +331,7 @@ def clean_file(filename,atribute='User'):
         del df
         # retorno el df "limpio"
         return (antes,len(df_clean),df_clean)
-    if atribute=='Coupon':
+    elif atribute=='Coupon':
         # cargo el df 
         df=pd.read_csv(zip_file.open(base + '.csv'),dtype=str,sep=separador,error_bad_lines=False)
         antes=len(df)
@@ -338,6 +341,17 @@ def clean_file(filename,atribute='User'):
         del df
         # retorno lo que me interesa
         return (antes,len(df_clean),df_clean)
+    elif atribute=='Campaign vs Tag':
+        # cargo el df 
+        df=pd.read_csv(zip_file.open(base + '.csv'),dtype=str,sep=separador,error_bad_lines=False)
+        antes=len(df)
+        # me quedo con cupones redimidos y con clientid.
+        df_clean = df[(df.campaignId.notnull()) & (df.segment.notnull()) & (df.tag.notnull())]
+        # Borro el df.
+        del df
+        # retorno lo que me interesa
+        return (antes,len(df_clean),df_clean)
+    
     else:
         print('Debe colocar un atributo válido')
 
@@ -348,7 +362,7 @@ def updatedb(atributo='User',country='AR'):
     import os
     # listado de archivos que busco actualizar.
     archivos = get_files_list(atributo,country)
-    #print(archivos[1:3])
+    #lst=[archivos[0]]
     lst=archivos
     for (shortname,date,filename) in lst:
         # verifico la existencia de ese archivo en la base.
@@ -376,6 +390,10 @@ def updatedb(atributo='User',country='AR'):
                 elif atributo=='Coupon':
                     sp_create_tmp_table = 'create_temp_coupons_table'
                     tabla=sql_diccionario[sp_create_tmp_table]['name']
+                elif atributo=='Campaign vs Tag':
+                    sp_create_tmp_table = 'create_temp_campaign_vs_tag_table'
+                    tabla=sql_diccionario[sp_create_tmp_table]['name']
+
                 #
                 print(f'\n\t\t*Cargando {shortname} a {tabla}')
                 run_sp(f'drop table if exists  "{tabla}";')
@@ -387,6 +405,8 @@ def updatedb(atributo='User',country='AR'):
                     run_sp(f'call sp_update_user_table();')
                 elif atributo=='Coupon':
                     run_sp(f"call sp_update_cupones('{country}');")
+                elif atributo=='Campaign vs Tag': 
+                    run_sp(f"call sp_update_campaignvstag('{country}');")
                 #
                 #
                 print(f'\n\t\t\t\t*Borrando {tabla} de la DB.\n Done!')
@@ -419,3 +439,50 @@ def get_delimiter(filename):
     dialect = sniffer.sniff(f_line)
     # retorno el separador.
     return dialect.delimiter
+
+def upload_file_salesforce(filename,verbose=True,progressEveryPercent=25):
+    """" Sube al ftp de salesforce argentina el archivo en la carpeta Import"""
+    import pysftp
+    progressDict={}
+
+    for i in range(0,101):
+        if i%progressEveryPercent==0:
+            progressDict[str(i)]=""
+
+    def printProgressDecimal(x,y,filename):
+        if int(100*(int(x)/int(y))) % progressEveryPercent ==0 and progressDict[str(int(100*(int(x)/int(y))))]=="":
+            print("Filename:{} {}% ({} Transfered(B)/ {} Total File Size(B))".format(filename,str("%.2f" %(100*(int(x)/int(y)))),x,y))
+            progressDict[str(int(100*(int(x)/int(y))))]="1"
+        
+    with pysftp.Connection(host="mc7dx8wzs3cz278f84lf0yrcsxw8.ftp.marketingcloudops.com", username="100010420",password="Mc@23ewr@#r##",log="./temp/pysftp.log") as srv:
+        srv.cwd('/Import') #Write the whole path
+        if verbose:
+            srv.put(filename,callback=lambda x,y: printProgressDecimal(x,y,filename)) #upload file to nodejs/
+        else:
+            srv.put(filename) #upload file to ftp in salesforce
+def haversine(coord1, coord2):
+    """ devuelve la distancia en metros a partir de dos coordenadas 
+    ejemplo: haversine ([-71.537451,-16.409047],[-71.513003,-16.417829])"""
+    import math
+    # Coordinates in decimal degrees (e.g. 2.89078, 12.79797)
+    lon1, lat1 = coord1
+    lon2, lat2 = coord2
+    R = 6371000  # radius of Earth in meters
+    phi_1 = math.radians(lat1)
+    phi_2 = math.radians(lat2)
+
+    delta_phi = math.radians(lat2 - lat1)
+    delta_lambda = math.radians(lon2 - lon1)
+
+    a = math.sin(delta_phi / 2.0) ** 2 + math.cos(phi_1) * math.cos(phi_2) * math.sin(delta_lambda / 2.0) ** 2
+
+    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+
+    meters = R * c  # output distance in meters
+    km = meters / 1000.0  # output distance in kilometers
+
+    meters = round(meters)
+    km = round(km, 3)
+    #print(f"Distance: {meters} m")
+    #print(f"Distance: {km} km")
+    return meters
