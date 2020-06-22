@@ -555,17 +555,24 @@ def update_all_countrys_atributes():
                     print(date)
 
                     
-def export_countries_DE():
-    
+def export_countries_DE(pais='all'):
+    """Export todos los DE por pais en C:\\Users\\Public\\ 
+    Argumentos:
+    'all' para exportar todos los paises
+    [XX,YY] o listado de paises a exportar."""
     import datetime
     import io
     from contextlib import redirect_stdout
-    # Defino la lista sobre las que itero.
-    paises = ['AR' ,'AW','BR','CL','CO','CR','CW','EC','GP','GT','GY','MQ','MX','PA','PE','PR','TT','UY','VE','VI']
     # Defino el archivo donde pongo la salida.
     logf = r"C:\Users\elopez\Documents\arcos_dorados\gigigo\automation\temp\logs_exports.txt"
     # path de exportacion.
     export_path ='C:\\Users\\Public\\'
+    if pais=='all':
+        # Defino la lista sobre las que itero.
+        paises = paises = ['AR' ,'AW','BR','CL','CO','CR','CW','EC','GP','GT','GY','MQ','MX','PA','PE','PR','TT','UY','VE','VI']
+    else:
+        # lista definida por el usuario
+        paises = pais
     for country in paises:
         # actualizo user, cupon y tags.
         with open(logf, 'a+') as f:
@@ -574,7 +581,7 @@ def export_countries_DE():
                     now = datetime.datetime.now()
                     date = "Exporting: Starting date and time : " + now.strftime("%Y-%m-%d %H:%M:%S") + "\n\tUpdating " + str(country) + ' in ' + str(filename) 
                     print(date)
-                    query = f"copy (select * from users u where u.country='{country}') TO '{filename}' DELIMITER ';' CSV HEADER;"
+                    query = f"copy (select * from users u where u.country='{country}' limit 1) TO '{filename}' DELIMITER ';' CSV HEADER;"
                     run_sp(query)
                     now = datetime.datetime.now()
                     date = "Exporting: Ending date and time : " + now.strftime("%Y-%m-%d %H:%M:%S") + '\n=========================================================================================================================='
