@@ -486,3 +486,96 @@ def haversine(coord1, coord2):
     #print(f"Distance: {meters} m")
     #print(f"Distance: {km} km")
     return meters
+
+
+
+
+def update_all_countrys():
+    """actualizo las tablas raw de cada pais"""
+    # importo las librerias que necesito.
+    import datetime
+    import io
+    from contextlib import redirect_stdout
+    # Defino la lista sobre las que itero.
+    paises = ['AR' ,'AW','BR','CL','CO','CR','CW','EC','GP','GT','GY','MQ','MX','PA','PE','PR','TT','UY','VE','VI']
+    # Defino el archivo donde pongo la salida.
+    logf = r"C:\Users\elopez\Documents\arcos_dorados\gigigo\automation\temp\logs_update_tables.txt"
+    # itero sobre todos los paises.
+    for country in paises:
+        # actualizo user, cupon y tags.
+        with open(logf, 'a+') as f:
+             with redirect_stdout(f):
+                    now = datetime.datetime.now()
+                    date = "USER: Current date and time : " + now.strftime("%Y-%m-%d %H:%M:%S") + "\n"
+                    print(date)
+                    updatedb('User',country)
+        with open(logf, 'a+') as f:
+             with redirect_stdout(f):
+                    now = datetime.datetime.now()
+                    date = "COUPON: Current date and time : " + now.strftime("%Y-%m-%d %H:%M:%S") + "\n"
+                    print(date)
+                    updatedb('Coupon',country)
+        with open(logf, 'a+') as f:
+             with redirect_stdout(f):
+                    now = datetime.datetime.now()
+                    date = "COUPON VS TAG: Current date and time : " + now.strftime("%Y-%m-%d %H:%M:%S") + "\n"
+                    print(date)
+                    updatedb('Campaign vs Tag',country)
+                    print("END\n================================================================================================")
+    
+def update_all_countrys_atributes():
+    """actualizo las tabla users de cada pais"""# importo las librerias que necesito.
+    import datetime
+    import io
+    from contextlib import redirect_stdout
+    # Defino la lista sobre las que itero.
+    paises = ['AR' ,'AW','BR','CL','CO','CR','CW','EC','GP','GT','GY','MQ','MX','PA','PE','PR','TT','UY','VE','VI']
+    # Defino el archivo donde pongo la salida.
+    logf = r"C:\Users\elopez\Documents\arcos_dorados\gigigo\automation\temp\logs_atributes.txt"
+    for country in paises:
+        # actualizo user, cupon y tags.
+        with open(logf, 'a+') as f:
+             with redirect_stdout(f):
+                    now = datetime.datetime.now()
+                    date = "Rest_Fav: Starting date and time : " + now.strftime("%Y-%m-%d %H:%M:%S") + "\n\tUpdating " + str(country)
+                    print(date)
+                    #run_sp(f"call sp_update_fav_rest('{country}');")
+                    now = datetime.datetime.now()
+                    date = "Rest_Fav: Ending date and time : " + now.strftime("%Y-%m-%d %H:%M:%S") + "\n================================================================================================================"
+                    print(date)
+                    
+        with open(logf, 'a+') as f:
+             with redirect_stdout(f):
+                    now = datetime.datetime.now()
+                    date = "Recency_Freq: Starting date and time : " + now.strftime("%Y-%m-%d %H:%M:%S") + "\n\tUpdating " + str(country)
+                    print(date)
+                    #run_sp(f"call sp_update_recency_frequency('{country}');")
+                    now = datetime.datetime.now()
+                    date = "Recency_Freq: Ending date and time : " + now.strftime("%Y-%m-%d %H:%M:%S") + "\n\n================================================================================================================"
+                    print(date)
+
+                    
+def export_countries_DE():
+    
+    import datetime
+    import io
+    from contextlib import redirect_stdout
+    # Defino la lista sobre las que itero.
+    paises = ['AR' ,'AW','BR','CL','CO','CR','CW','EC','GP','GT','GY','MQ','MX','PA','PE','PR','TT','UY','VE','VI']
+    # Defino el archivo donde pongo la salida.
+    logf = r"C:\Users\elopez\Documents\arcos_dorados\gigigo\automation\temp\logs_exports.txt"
+    # path de exportacion.
+    export_path ='C:\\Users\\Public\\'
+    for country in paises:
+        # actualizo user, cupon y tags.
+        with open(logf, 'a+') as f:
+             with redirect_stdout(f):
+                    filename = export_path + country + '_PREFERENCIAS.csv'
+                    now = datetime.datetime.now()
+                    date = "Exporting: Starting date and time : " + now.strftime("%Y-%m-%d %H:%M:%S") + "\n\tUpdating " + str(country) + ' in ' + str(filename) 
+                    print(date)
+                    query = f"copy (select * from users u where u.country='{country}') TO '{filename}' DELIMITER ';' CSV HEADER;"
+                    run_sp(query)
+                    now = datetime.datetime.now()
+                    date = "Exporting: Ending date and time : " + now.strftime("%Y-%m-%d %H:%M:%S") + '\n=========================================================================================================================='
+                    print(date)
