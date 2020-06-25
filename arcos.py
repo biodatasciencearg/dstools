@@ -44,6 +44,36 @@ sql_diccionario = {
                                         }
 }
 
+ftps_dicc =     {
+    'AR':{'USER':"100010420" ,'password':"Mc@23ewr@#r##", 'server':'mc7dx8wzs3cz278f84lf0yrcsxw8.ftp.marketingcloudops.com','NOMBRE':'ARGENTINA'},
+    'AW':{'USER':"100010424_2",'password':"Mc@23ewr@#r##", 'server':'mc7dx8wzs3cz278f84lf0yrcsxw8.ftp.marketingcloudops.com','NOMBRE':'ARUBA'},
+    'BR':{'USER':"100010421" ,'password':"Mc@23ewr@#r##", 'server':'mc7dx8wzs3cz278f84lf0yrcsxw8.ftp.marketingcloudops.com','NOMBRE':'BRASIL'},
+    'CL':{'USER':"100010424_2",'password':"Mc@23ewr@#r##", 'server':'mc7dx8wzs3cz278f84lf0yrcsxw8.ftp.marketingcloudops.com','NOMBRE':'CHILE'},
+    'CO':{'USER':"100010422_2",'password':"Mc@23ewr@#r##", 'server':'mc7dx8wzs3cz278f84lf0yrcsxw8.ftp.marketingcloudops.com','NOMBRE':'COLOMBIA'},
+    'CR':{'USER':"100010424_2",'password':"Mc@23ewr@#r##", 'server':'mc7dx8wzs3cz278f84lf0yrcsxw8.ftp.marketingcloudops.com','NOMBRE':'COSTA RICA'},
+    'CW':{'USER':"100010424_2",'password':"Mc@23ewr@#r##", 'server':'mc7dx8wzs3cz278f84lf0yrcsxw8.ftp.marketingcloudops.com','NOMBRE':'CURACAO'},
+    'EC':{'USER':"100010424_2",'password':"Mc@23ewr@#r##", 'server':'mc7dx8wzs3cz278f84lf0yrcsxw8.ftp.marketingcloudops.com','NOMBRE':'ECUADOR'},
+    'GP':{'USER':"100010424_2",'password':"Mc@23ewr@#r##", 'server':'mc7dx8wzs3cz278f84lf0yrcsxw8.ftp.marketingcloudops.com','NOMBRE':'GUADALUPE'},
+    'GT':{'USER':"100010424_2",'password':"Mc@23ewr@#r##", 'server':'mc7dx8wzs3cz278f84lf0yrcsxw8.ftp.marketingcloudops.com','NOMBRE':'GT'},
+    'GY':{'USER':"100010424_2",'password':"Mc@23ewr@#r##", 'server':'mc7dx8wzs3cz278f84lf0yrcsxw8.ftp.marketingcloudops.com','NOMBRE':'GUYANA_FRANCESA'},
+    'MQ':{'USER':"100010424_2",'password':"Mc@23ewr@#r##", 'server':'mc7dx8wzs3cz278f84lf0yrcsxw8.ftp.marketingcloudops.com','NOMBRE':'MARTINICA'},
+    'MX':{'USER':"100010423_2",'password':"Mc@23ewr@#r##", 'server':'mc7dx8wzs3cz278f84lf0yrcsxw8.ftp.marketingcloudops.com','NOMBRE':'MEXICO'},
+    'PA':{'USER':"100010424_2",'password':"Mc@23ewr@#r##", 'server':'mc7dx8wzs3cz278f84lf0yrcsxw8.ftp.marketingcloudops.com','NOMBRE':'PANAMA'},
+    'PE':{'USER':"100010424_2",'password':"Mc@23ewr@#r##", 'server':'mc7dx8wzs3cz278f84lf0yrcsxw8.ftp.marketingcloudops.com','NOMBRE':'PERU'},
+    'PR':{'USER':"100010424_2",'password':"Mc@23ewr@#r##", 'server':'mc7dx8wzs3cz278f84lf0yrcsxw8.ftp.marketingcloudops.com','NOMBRE':'PUERTO RICO'},
+    'TT':{'USER':"100010424_2",'password':"Mc@23ewr@#r##", 'server':'mc7dx8wzs3cz278f84lf0yrcsxw8.ftp.marketingcloudops.com','NOMBRE':'TRINIDAD_TOBAGO'},
+    'UY':{'USER':"100010424_2",'password':"Mc@23ewr@#r##", 'server':'mc7dx8wzs3cz278f84lf0yrcsxw8.ftp.marketingcloudops.com','NOMBRE':'URUGUAY'},
+    'VE':{'USER':"100010424_2",'password':"Mc@23ewr@#r##", 'server':'mc7dx8wzs3cz278f84lf0yrcsxw8.ftp.marketingcloudops.com','NOMBRE':'VENEZUELA'},
+    'VI':{'USER':"100010424_2",'password':"Mc@23ewr@#r##", 'server':'mc7dx8wzs3cz278f84lf0yrcsxw8.ftp.marketingcloudops.com','NOMBRE':'VI'}
+        }
+
+
+
+
+
+
+
+
 # Variable
 gigigo_path = "C:/Users/elopez/Golden Arch Development Corp/Transferencia Bases de Datos - Gigigo"
 
@@ -240,6 +270,10 @@ def get_date_ffile(file_name):
         mtime = 0
     last_modified_date = datetime.fromtimestamp(mtime).strftime("%Y%m%d")
     return last_modified_date
+
+
+
+
 # Fucion que devuelve los archivos y su fecha de modificacion de gigigo.
 def get_files_list(atribute='User',country='AR'):
     """extraigo todos lo archivos con un dado atributo
@@ -258,6 +292,10 @@ def get_files_list(atribute='User',country='AR'):
     name_date = [(file,get_date_ffile(modification_date),modification_date) for modification_date,file in zip(absolute_path_filenames,filenames)]
     #
     return (name_date)
+
+
+
+
 
 def run_sp(query):
     import psycopg2
@@ -440,7 +478,9 @@ def get_delimiter(filename):
     # retorno el separador.
     return dialect.delimiter
 
-def upload_file_salesforce(filename,verbose=True,progressEveryPercent=25):
+
+
+def upload_file_salesforce(filename,country,verbose=True,progressEveryPercent=25):
     """" Sube al ftp de salesforce argentina el archivo en la carpeta Import"""
     import pysftp
     progressDict={}
@@ -453,11 +493,14 @@ def upload_file_salesforce(filename,verbose=True,progressEveryPercent=25):
         if int(100*(int(x)/int(y))) % progressEveryPercent ==0 and progressDict[str(int(100*(int(x)/int(y))))]=="":
             print("Filename:{} {}% ({} Transfered(B)/ {} Total File Size(B))".format(filename,str("%.2f" %(100*(int(x)/int(y)))),x,y))
             progressDict[str(int(100*(int(x)/int(y))))]="1"
-        
-    with pysftp.Connection(host="mc7dx8wzs3cz278f84lf0yrcsxw8.ftp.marketingcloudops.com", username="100010420",password="Mc@23ewr@#r##",log="./temp/pysftp.log") as srv:
+    host     = ftps_dicc[country]['server']
+    username = str(ftps_dicc[country]['USER'])
+    password =  "Mc@23ewr@#r##"
+    logfile  = r"C:/Users/elopez/Documents/arcos_dorados/gigigo/automation/temp/pysftp.log"
+    with pysftp.Connection(host=host,username=username,password=password,log=logfile) as srv:
         srv.cwd('/Import') #Write the whole path
         if verbose:
-            srv.put(filename,callback=lambda x,y: printProgressDecimal(x,y,filename)) #upload file to nodejs/
+            srv.put(filename,callback=lambda x,y: printProgressDecimal(x,y,filename)) #upload file to ftp/
         else:
             srv.put(filename) #upload file to ftp in salesforce
 def haversine(coord1, coord2):
@@ -523,7 +566,7 @@ def update_all_countrys():
                     updatedb('Campaign vs Tag',country)
                     print("END\n================================================================================================")
     
-def update_all_countrys_atributes():
+def update_all_countrys_atributes(_ndays = '2 days'):
     """actualizo las tabla users de cada pais"""# importo las librerias que necesito.
     import datetime
     import io
@@ -539,7 +582,7 @@ def update_all_countrys_atributes():
                     now = datetime.datetime.now()
                     date = "Rest_Fav: Starting date and time : " + now.strftime("%Y-%m-%d %H:%M:%S") + "\n\tUpdating " + str(country)
                     print(date)
-                    #run_sp(f"call sp_update_fav_rest('{country}');")
+                    run_sp(f"call sp_update_fav_rest('{country}','{_ndays}');")
                     now = datetime.datetime.now()
                     date = "Rest_Fav: Ending date and time : " + now.strftime("%Y-%m-%d %H:%M:%S") + "\n================================================================================================================"
                     print(date)
@@ -549,7 +592,7 @@ def update_all_countrys_atributes():
                     now = datetime.datetime.now()
                     date = "Recency_Freq: Starting date and time : " + now.strftime("%Y-%m-%d %H:%M:%S") + "\n\tUpdating " + str(country)
                     print(date)
-                    #run_sp(f"call sp_update_recency_frequency('{country}');")
+                    run_sp(f"call sp_update_recency_frequency('{country}','{_ndays}');")
                     now = datetime.datetime.now()
                     date = "Recency_Freq: Ending date and time : " + now.strftime("%Y-%m-%d %H:%M:%S") + "\n\n================================================================================================================"
                     print(date)
@@ -563,6 +606,8 @@ def export_countries_DE(pais='all'):
     import datetime
     import io
     from contextlib import redirect_stdout
+    import time
+    yyyymmdd = time.strftime('%Y%m%d')
     # Defino el archivo donde pongo la salida.
     logf = r"C:\Users\elopez\Documents\arcos_dorados\gigigo\automation\temp\logs_exports.txt"
     # path de exportacion.
@@ -577,12 +622,56 @@ def export_countries_DE(pais='all'):
         # actualizo user, cupon y tags.
         with open(logf, 'a+') as f:
              with redirect_stdout(f):
-                    filename = export_path + country + '_PREFERENCIAS.csv'
+                    filename = export_path + country + '_PREFERENCIAS_'+ yyyymmdd +'.csv'
                     now = datetime.datetime.now()
                     date = "Exporting: Starting date and time : " + now.strftime("%Y-%m-%d %H:%M:%S") + "\n\tUpdating " + str(country) + ' in ' + str(filename) 
                     print(date)
-                    query = f"copy (select * from users u where u.country='{country}' limit 1) TO '{filename}' DELIMITER ';' CSV HEADER;"
+                    query = f"copy (select * from users u where u.country='{country}' ) TO '{filename}' DELIMITER ';' CSV HEADER;"
                     run_sp(query)
                     now = datetime.datetime.now()
-                    date = "Exporting: Ending date and time : " + now.strftime("%Y-%m-%d %H:%M:%S") + '\n=========================================================================================================================='
+                    date = "Exporting: Ending date and time : " + now.strftime("%Y-%m-%d %H:%M:%S")+'\nCompress...'
                     print(date)
+                    compress_file(filename,export_path)
+                    print('\n==========================================================================================================================')
+
+def import_countries_DE(pais='all'):
+    """Export todos los DE por pais en C:\\Users\\Public\\ 
+    Argumentos:
+    'all' para exportar todos los paises
+    [XX,YY] o listado de paises a exportar."""
+    import datetime
+    import io
+    from contextlib import redirect_stdout
+    import time
+    yyyymmdd = time.strftime('%Y%m%d')
+    # Defino el archivo donde pongo la salida.
+    logf = r"C:\Users\elopez\Documents\arcos_dorados\gigigo\automation\temp\logs_imports.txt"
+    # path de exportacion.
+    export_path ='C:\\Users\\Public\\'
+    if pais=='all':
+        # Defino la lista sobre las que itero.
+        paises = paises = ['AR' ,'AW','BR','CL','CO','CR','CW','EC','GP','GT','GY','MQ','MX','PA','PE','PR','TT','UY','VE','VI']
+    else:
+        # lista definida por el usuario
+        paises = pais
+    for country in paises:
+        # actualizo user, cupon y tags.
+        with open(logf, 'a+') as f:
+             with redirect_stdout(f):
+                    filename = export_path + country + '_PREFERENCIAS_'+ yyyymmdd +'.zip'
+                    now = datetime.datetime.now()
+                    date = "Uploading: Starting date and time : " + now.strftime("%Y-%m-%d %H:%M:%S") + "\n\tUploading " + str(country) + ' in ' + str(filename) 
+                    print(date)
+                    upload_file_salesforce(filename,country)
+                    now = datetime.datetime.now()
+                    date = "Uploading: Ending date and time : " + now.strftime("%Y-%m-%d %H:%M:%S") + '\n=========================================================================================================================='
+                    print(date)
+
+                    
+def compress_file(filename,export_path):
+    from zipfile import ZipFile, ZIP_DEFLATED
+    import os
+    # consigo el nombre base del archivo.
+    base = os.path.splitext(os.path.basename(filename))[0]
+    with ZipFile(export_path + base + '.zip','w',ZIP_DEFLATED) as zip:
+        zip.write(filename,os.path.basename(filename))
