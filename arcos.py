@@ -32,7 +32,8 @@ sql_diccionario = {
                                         deliveredAt timestamp ,
                                         redeemAt timestamp ,
                                         restaurantKey varchar(50),
-                                        restaurantRedeemKey varchar(50)
+                                        restaurantRedeemKey varchar(50),
+                                        posid varchar(50)
                                         )"""
                                         ,
                                         'name':'coupons_temp'
@@ -45,9 +46,9 @@ sql_diccionario = {
 }
 
 ftps_dicc =     {
-    'AR':{'USER':"100010420" ,'password':"Mc@23ewr@#r##", 'server':'mc7dx8wzs3cz278f84lf0yrcsxw8.ftp.marketingcloudops.com','NOMBRE':'ARGENTINA'},
+    'AR':{'USER':"100010420_2" ,'password':"Mc@23ewr@#r##", 'server':'mc7dx8wzs3cz278f84lf0yrcsxw8.ftp.marketingcloudops.com','NOMBRE':'ARGENTINA'},
     'AW':{'USER':"100010424_2",'password':"Mc@23ewr@#r##", 'server':'mc7dx8wzs3cz278f84lf0yrcsxw8.ftp.marketingcloudops.com','NOMBRE':'ARUBA'},
-    'BR':{'USER':"100010421" ,'password':"Mc@23ewr@#r##", 'server':'mc7dx8wzs3cz278f84lf0yrcsxw8.ftp.marketingcloudops.com','NOMBRE':'BRASIL'},
+    'BR':{'USER':"100010421_2" ,'password':"Mc@23ewr@#r##", 'server':'mc7dx8wzs3cz278f84lf0yrcsxw8.ftp.marketingcloudops.com','NOMBRE':'BRASIL'},
     'CL':{'USER':"100010424_2",'password':"Mc@23ewr@#r##", 'server':'mc7dx8wzs3cz278f84lf0yrcsxw8.ftp.marketingcloudops.com','NOMBRE':'CHILE'},
     'CO':{'USER':"100010422_2",'password':"Mc@23ewr@#r##", 'server':'mc7dx8wzs3cz278f84lf0yrcsxw8.ftp.marketingcloudops.com','NOMBRE':'COLOMBIA'},
     'CR':{'USER':"100010424_2",'password':"Mc@23ewr@#r##", 'server':'mc7dx8wzs3cz278f84lf0yrcsxw8.ftp.marketingcloudops.com','NOMBRE':'COSTA RICA'},
@@ -374,11 +375,12 @@ def clean_file(filename,atribute='User'):
         df=pd.read_csv(zip_file.open(base + '.csv'),dtype=str,sep=separador,error_bad_lines=False)
         antes=len(df)
         # me quedo con cupones redimidos y con clientid.
-        df_clean = df[(df.clientId.notnull()) & (df.redeemAt.notnull())]
+        #df_clean = df[(df.clientId.notnull()) & (df.redeemAt.notnull())]
+        df_clean = df[(df.clientId.notnull())]
         # Borro el df.
         del df
         # retorno lo que me interesa
-        return (antes,len(df_clean),df_clean)
+        return (antes,len(df_clean),df_clean.loc[:,:])
     elif atribute=='Campaign vs Tag':
         # cargo el df 
         df=pd.read_csv(zip_file.open(base + '.csv'),dtype=str,sep=separador,error_bad_lines=False)
@@ -575,27 +577,28 @@ def update_all_countrys_atributes(_ndays = '2 days'):
     paises = ['AR' ,'AW','BR','CL','CO','CR','CW','EC','GP','GT','GY','MQ','MX','PA','PE','PR','TT','UY','VE','VI']
     # Defino el archivo donde pongo la salida.
     logf = r"C:\Users\elopez\Documents\arcos_dorados\gigigo\automation\temp\logs_atributes.txt"
-    for country in paises:
-        # actualizo user, cupon y tags.
-        with open(logf, 'a+') as f:
-             with redirect_stdout(f):
-                    now = datetime.datetime.now()
-                    date = "Rest_Fav: Starting date and time : " + now.strftime("%Y-%m-%d %H:%M:%S") + "\n\tUpdating " + str(country)
-                    print(date)
-                    run_sp(f"call sp_update_fav_rest('{country}','{_ndays}');")
-                    now = datetime.datetime.now()
-                    date = "Rest_Fav: Ending date and time : " + now.strftime("%Y-%m-%d %H:%M:%S") + "\n================================================================================================================"
-                    print(date)
+    #for country in paises:
+    country='all'
+    # actualizo user, cupon y tags.
+    with open(logf, 'a+') as f:
+        with redirect_stdout(f):
+            now = datetime.datetime.now()
+            date = "Rest_Fav: Starting date and time : " + now.strftime("%Y-%m-%d %H:%M:%S") + "\n\tUpdating " + str(country)
+            print(date)
+            run_sp(f"call sp_update_fav_rest('{country}','{_ndays}');")
+            now = datetime.datetime.now()
+            date = "Rest_Fav: Ending date and time : " + now.strftime("%Y-%m-%d %H:%M:%S") + "\n================================================================================================================"
+            print(date)
                     
-        with open(logf, 'a+') as f:
-             with redirect_stdout(f):
-                    now = datetime.datetime.now()
-                    date = "Recency_Freq: Starting date and time : " + now.strftime("%Y-%m-%d %H:%M:%S") + "\n\tUpdating " + str(country)
-                    print(date)
-                    run_sp(f"call sp_update_recency_frequency('{country}','{_ndays}');")
-                    now = datetime.datetime.now()
-                    date = "Recency_Freq: Ending date and time : " + now.strftime("%Y-%m-%d %H:%M:%S") + "\n\n================================================================================================================"
-                    print(date)
+    with open(logf, 'a+') as f:
+        with redirect_stdout(f):
+            now = datetime.datetime.now()
+            date = "Recency_Freq: Starting date and time : " + now.strftime("%Y-%m-%d %H:%M:%S") + "\n\tUpdating " + str(country)
+            print(date)
+            run_sp(f"call sp_update_recency_frequency('{country}','{_ndays}');")
+            now = datetime.datetime.now()
+            date = "Recency_Freq: Ending date and time : " + now.strftime("%Y-%m-%d %H:%M:%S") + "\n\n================================================================================================================"
+            print(date)
 
                     
 def export_countries_DE(pais='all'):
@@ -626,7 +629,7 @@ def export_countries_DE(pais='all'):
                     now = datetime.datetime.now()
                     date = "Exporting: Starting date and time : " + now.strftime("%Y-%m-%d %H:%M:%S") + "\n\tUpdating " + str(country) + ' in ' + str(filename) 
                     print(date)
-                    query = f"copy (select * from users u where u.country='{country}' ) TO '{filename}' DELIMITER ';' CSV HEADER;"
+                    query = f"copy (select u.mcid, lower(unaccent(u.email)) as email, u.userfacebookid, u.country, u.firstname, u.lastname, u.gender, u.birthdate, u.documento, u.createdat, u.smsenabled, u.pushenabled, u.emailenabled, u.showcouponalert, u.currentcity, u.phonenumberprefix, u.phonenumbersufix, u.status, u.rest_fav_1, u.rest_fav_2, u.rest_fav_3, u.last_burn, u.recency, u.frequency from users u where u.country='{country}' ) TO '{filename}' DELIMITER ';' CSV HEADER;"
                     run_sp(query)
                     now = datetime.datetime.now()
                     date = "Exporting: Ending date and time : " + now.strftime("%Y-%m-%d %H:%M:%S")+'\nCompress...'
@@ -675,3 +678,72 @@ def compress_file(filename,export_path):
     base = os.path.splitext(os.path.basename(filename))[0]
     with ZipFile(export_path + base + '.zip','w',ZIP_DEFLATED) as zip:
         zip.write(filename,os.path.basename(filename))
+def get_querydf(query):
+    import psycopg2 as pg
+    import pandas.io.sql as psql
+    connection = pg.connect(host="localhost",database="gigigo", user="postgres", password="asdasd")
+    dataframe = psql.read_sql(query, connection)
+    return dataframe
+
+
+def process_cupon_athena(filename):
+    """Funcion que agregar pais y periodo y cambia de formato a gzip"""
+    import pandas as pd
+    from zipfile import ZipFile
+    import gzip
+    import csv
+    import os
+    #filename='br_coupon_2020-07-21.zip'
+    filename = r"{}".format(filename)
+    # consigo el nombre base del archivo.
+    base = os.path.splitext(os.path.basename(filename))[0]
+    # abro el zip.
+    zip_file = ZipFile(r"{}".format(filename))
+    # separador:
+    separador = get_delimiter(filename)
+    # cargo el df 
+    df=pd.read_csv(zip_file.open(base + '.csv'),dtype=str,sep=separador,error_bad_lines=False)
+    df.columns = [c.lower() for c  in df.columns]
+    df['country']= base[:2].upper()
+    df['period']=df.deliveredat.apply(lambda x: str(x)[6:10] + str(x)[3:5])
+    sel = ['clientid', 'campaignid', 'code', 'deliveredat', 'redeemat', 'restaurantkey', 'restaurantredeemkey', 'country','period']
+    df[sel].to_csv(base + ".csv.gz", index=False, compression="gzip",quoting=1,sep=',')
+    del df
+
+def process_users_athena(filename):
+    """Funcion que agregar pais y periodo y cambia de formato a gzip"""
+    import pandas as pd
+    from zipfile import ZipFile
+    import gzip
+    import csv
+    import os
+    filename = r"{}".format(filename)
+    # consigo el nombre base del archivo.
+    base = os.path.splitext(os.path.basename(filename))[0]
+    # abro el zip.
+    zip_file = ZipFile(r"{}".format(filename))
+    # separador:
+    separador = get_delimiter(filename)
+    # cargo el df 
+    df=pd.read_csv(zip_file.open(base + '.csv'),dtype=str,sep=separador,error_bad_lines=False)
+    df.columns = [c.lower() for c  in df.columns]
+    df.to_csv(base + ".csv.gz", index=False, compression="gzip",quoting=1,sep=',')
+    del df
+def info_check(globpattern='/*_coupon_2020-07-*.zip',country='BR'):
+    db = r'C:/Users/elopez/Golden Arch Development Corp/Transferencia Bases de Datos - Gigigo/'+ country + '/Coupon'
+    import glob
+    Files = glob.glob(db + globpattern)
+    from zipfile import ZipFile
+    import csv
+    import os
+    
+    # separador:
+    for filename in Files:
+        filename = r"{}".format(filename)
+        # consigo el nombre base del archivo.
+        base = os.path.splitext(os.path.basename(filename))[0]
+        # abro el zip.
+        zip_file = ZipFile(r"{}".format(filename))
+        df = pd.read_csv(zip_file.open(base + '.csv'),sep=',',dtype=str,error_bad_lines=False)    
+        basename = os.path.basename(filename) 
+        print(basename,len(df[df.redeemAt.notnull()]['restaurantRedeemKey'].unique()),(df[df.redeemAt.notnull()].shape[0]/df.shape[0])*100)  
