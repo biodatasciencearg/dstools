@@ -33,7 +33,9 @@ sql_diccionario = {
                                         redeemAt timestamp ,
                                         restaurantKey varchar(50),
                                         restaurantRedeemKey varchar(50),
-                                        posid varchar(50)
+                                        posid varchar(50),
+                                        period int ,
+                                        country varchar(2)
                                         )"""
                                         ,
                                         'name':'coupons_temp'
@@ -275,7 +277,7 @@ def get_date_ffile(file_name):
 
 
 
-# Fucion que devuelve los archivos y su fecha de modificacion de gigigo.
+# Funcion que devuelve los archivos y su fecha de modificacion de gigigo.
 def get_files_list(atribute='User',country='AR'):
     """extraigo todos lo archivos con un dado atributo
     opciones=['User','Campaign',  'Campaign vs Tag',   'Coupon',   'User', 'User vs Tag'']"""
@@ -284,7 +286,8 @@ def get_files_list(atribute='User',country='AR'):
     # importo glob.
     import glob
     # me busco todos los zip de las subfolders.
-    absolute_path = gigigo_path +  '/' + country+ '/' + atribute + '/*.zip'
+    #absolute_path = gigigo_path +  '/' + country+ '/' + atribute + '/*.zip'
+    absolute_path = gigigo_path +  '/' + country+ '/' + atribute + '/*csv.gz'
     # guardo en una lista todos los files.
     absolute_path_filenames = glob.glob(absolute_path)
     # Me guardo los nombre de archivos.
@@ -327,15 +330,10 @@ def run_query(query):
 def clean_file(filename,atribute='User'):
     """Funcion que limpia el archivo de entrada tribute:['User','Coupon']"""
     import pandas as pd
-    from zipfile import ZipFile
+    #from zipfile import ZipFile
     import csv
     import os
     filename = r"{}".format(filename)
-    # consigo el nombre base del archivo.
-    base = os.path.splitext(os.path.basename(filename))[0]
-    # abro el zip.
-    
-    zip_file = ZipFile(r"{}".format(filename))
     # separador:
     separador = get_delimiter(filename)
     if atribute=='User':
@@ -344,7 +342,7 @@ def clean_file(filename,atribute='User'):
                   'pushEnabled', 'emailEnabled', 'showCouponAlert', 'currentCity', 'phoneNumberPrefix','phoneNumberSufix', 
                   'status']
         # cargo el dataset en memoria.
-        df = pd.read_csv(zip_file.open(base + '.csv'),sep=separador,dtype=str,usecols=columnas,error_bad_lines=False)
+        df = pd.read_csv(filename,compression='gzip',sep=separador,dtype=str,usecols=columnas,error_bad_lines=False)
         antes=len(df)
         # limpio el df
         df_clean = df [( df['clientId'].str.len() <= 25.0 ) &
@@ -372,10 +370,9 @@ def clean_file(filename,atribute='User'):
         return (antes,len(df_clean),df_clean)
     elif atribute=='Coupon':
         # cargo el df 
-        df=pd.read_csv(zip_file.open(base + '.csv'),dtype=str,sep=separador,error_bad_lines=False)
+        df=pd.read_csv(filename,compression='gzip',dtype=str,sep=separador,error_bad_lines=False)
         antes=len(df)
         # me quedo con cupones redimidos y con clientid.
-        #df_clean = df[(df.clientId.notnull()) & (df.redeemAt.notnull())]
         df_clean = df[(df.clientId.notnull())]
         # Borro el df.
         del df
@@ -383,9 +380,9 @@ def clean_file(filename,atribute='User'):
         return (antes,len(df_clean),df_clean.loc[:,:])
     elif atribute=='Campaign vs Tag':
         # cargo el df 
-        df=pd.read_csv(zip_file.open(base + '.csv'),dtype=str,sep=separador,error_bad_lines=False)
+        df=pd.read_csv(filename,compression='gzip',dtype=str,sep=separador,error_bad_lines=False)
         antes=len(df)
-        # me quedo con cupones redimidos y con clientid.
+        # me quedo con campañas no nulas y con tags
         df_clean = df[(df.campaignId.notnull()) & (df.segment.notnull()) & (df.tag.notnull())]
         # Borro el df.
         del df
@@ -465,15 +462,14 @@ def updatedb(atributo='User',country='AR'):
         
 def get_delimiter(filename):
     "Retorno si el csv esta con comma o punto y comma"
-    import zipfile
+    import gzip
     import csv
     import os
     # consigo el nombre base del archivo.
     base = os.path.splitext(os.path.basename(filename))[0]
     # abro el csv y consigo la primer linea.
-    with zipfile.ZipFile(filename) as z:
-        with z.open(base + '.csv') as f:
-            f_line= f.readline().decode("utf-8") 
+    with gzip.open(filename) as z:
+        f_line= z.readline().decode("utf-8") 
     # inicializo el sniffer
     sniffer = csv.Sniffer()
     dialect = sniffer.sniff(f_line)
@@ -567,38 +563,63 @@ def update_all_countrys():
                     print(date)
                     updatedb('Campaign vs Tag',country)
                     print("END\n================================================================================================")
-    
-def update_all_countrys_atributes(_ndays = '2 days'):
+
+def istoday(day):
+    """devuelve true si el dia de hoy es el que uno pide como argumento donde 0 es lunes y 6 es domingo"""
+    import datetime
+    return datetime.datetime.today().weekday()==day
+
+
+def update_all_countrys_atributes():
     """actualizo las tabla users de cada pais"""# importo las librerias que necesito.
     import datetime
     import io
     from contextlib import redirect_stdout
-    # Defino la lista sobre las que itero.
-    paises = ['AR' ,'AW','BR','CL','CO','CR','CW','EC','GP','GT','GY','MQ','MX','PA','PE','PR','TT','UY','VE','VI']
     # Defino el archivo donde pongo la salida.
     logf = r"C:\Users\elopez\Documents\arcos_dorados\gigigo\automation\temp\logs_atributes.txt"
-    #for country in paises:
-    country='all'
-    # actualizo user, cupon y tags.
+    # actualizacion diaria de transacciones.            
     with open(logf, 'a+') as f:
         with redirect_stdout(f):
             now = datetime.datetime.now()
-            date = "Rest_Fav: Starting date and time : " + now.strftime("%Y-%m-%d %H:%M:%S") + "\n\tUpdating " + str(country)
+            date = "Transaccions_agg: Starting date and time : " + now.strftime("%Y-%m-%d %H:%M:%S") + "\n\tUpdating " + str(country)
             print(date)
-            run_sp(f"call sp_update_fav_rest('{country}','{_ndays}');")
+            run_sp(f"call sp_transacciones_agregadas();")
             now = datetime.datetime.now()
-            date = "Rest_Fav: Ending date and time : " + now.strftime("%Y-%m-%d %H:%M:%S") + "\n================================================================================================================"
+            date = "Transaccions_agg: Ending date and time : " + now.strftime("%Y-%m-%d %H:%M:%S") + "\n\n================================================================================================================"
             print(date)
-                    
+    # actualizacion diaria.                
     with open(logf, 'a+') as f:
         with redirect_stdout(f):
             now = datetime.datetime.now()
             date = "Recency_Freq: Starting date and time : " + now.strftime("%Y-%m-%d %H:%M:%S") + "\n\tUpdating " + str(country)
             print(date)
-            run_sp(f"call sp_update_recency_frequency('{country}','{_ndays}');")
+            run_sp(f"call sp_update_recency_frequency();")
             now = datetime.datetime.now()
             date = "Recency_Freq: Ending date and time : " + now.strftime("%Y-%m-%d %H:%M:%S") + "\n\n================================================================================================================"
             print(date)
+        # actualizo restaurante favorito.
+    # si es domingo actualizo restaruante favorito.
+    if istoday(6):
+        with open(logf, 'a+') as f:
+            with redirect_stdout(f):
+                now = datetime.datetime.now()
+                date = "Rest_Fav: Starting date and time : " + now.strftime("%Y-%m-%d %H:%M:%S") + "\n\tUpdating " + str(country)
+                print(date)
+                run_sp(f"call sp_update_fav_rest();")
+                now = datetime.datetime.now()
+                date = "Rest_Fav: Ending date and time : " + now.strftime("%Y-%m-%d %H:%M:%S") + "\n================================================================================================================"
+                print(date)
+        # actualizo ademas daypart y dayfweek
+        with open(logf, 'a+') as f:
+            with redirect_stdout(f):
+                now = datetime.datetime.now()
+                date = "Daypart: Starting date and time : " + now.strftime("%Y-%m-%d %H:%M:%S") + "\n\tUpdating " + str(country)
+                print(date)
+                run_sp(f"call sp_update_daypart_dayofweek();")
+                now = datetime.datetime.now()
+                date = "Daypart: Ending date and time : " + now.strftime("%Y-%m-%d %H:%M:%S") + "\n================================================================================================================"
+                print(date)
+
 
                     
 def export_countries_DE(pais='all'):
@@ -629,7 +650,7 @@ def export_countries_DE(pais='all'):
                     now = datetime.datetime.now()
                     date = "Exporting: Starting date and time : " + now.strftime("%Y-%m-%d %H:%M:%S") + "\n\tUpdating " + str(country) + ' in ' + str(filename) 
                     print(date)
-                    query = f"copy (select u.mcid, lower(unaccent(u.email)) as email, u.userfacebookid, u.country, u.firstname, u.lastname, u.gender, u.birthdate, u.documento, u.createdat, u.smsenabled, u.pushenabled, u.emailenabled, u.showcouponalert, u.currentcity, u.phonenumberprefix, u.phonenumbersufix, u.status, u.rest_fav_1, u.rest_fav_2, u.rest_fav_3, u.last_burn, u.recency, u.frequency from users u where u.country='{country}' ) TO '{filename}' DELIMITER ';' CSV HEADER;"
+                    query = f"copy (select u.mcid, lower(unaccent(u.email)) as email, u.userfacebookid, u.country, u.firstname, u.lastname, u.gender, u.birthdate, u.documento, u.createdat, u.smsenabled, u.pushenabled, u.emailenabled, u.showcouponalert, u.currentcity, u.phonenumberprefix, u.phonenumbersufix, u.status, u.rest_fav_1, u.rest_fav_2, u.rest_fav_3, u.last_burn, u.recency, u.frequency, days_since_creation, last_product, favorite_product, favorite_dayofweek, favorite_daypart, rfm_segment from users u where u.country='{country}' ) TO '{filename}' DELIMITER ';' CSV HEADER;"
                     run_sp(query)
                     now = datetime.datetime.now()
                     date = "Exporting: Ending date and time : " + now.strftime("%Y-%m-%d %H:%M:%S")+'\nCompress...'
@@ -653,7 +674,7 @@ def import_countries_DE(pais='all'):
     export_path ='C:\\Users\\Public\\'
     if pais=='all':
         # Defino la lista sobre las que itero.
-        paises = paises = ['AR' ,'AW','BR','CL','CO','CR','CW','EC','GP','GT','GY','MQ','MX','PA','PE','PR','TT','UY','VE','VI']
+        paises = ['AR' ,'AW','BR','CL','CO','CR','CW','EC','GP','GT','GY','MQ','MX','PA','PE','PR','TT','UY','VE','VI']
     else:
         # lista definida por el usuario
         paises = pais
