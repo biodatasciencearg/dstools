@@ -1,4 +1,5 @@
 # Defino algunos strings que puedan llegar a ser utiles.   
+# agrego n comment
 sql_diccionario = {
 'create_temp_user_table' : {'query':"""create table users_temp (
                                         clientId varchar(25),
